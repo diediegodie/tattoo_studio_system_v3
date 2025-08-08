@@ -1,11 +1,17 @@
 <!doctype html>
 <html>
-  <head><title>Dashboard</title></head>
-  <body>
-    <h2>Olá, {{ user.name }}</h2>
-    <p>Email: {{ user.email }}</p>
-    <img src="{{ user.picture }}" width="100" />
-    <br><br>
-    <a href="{{ url_for('auth.logout') }}">Sair</a>
-  </body>
+
+<head>
+  <title>Dashboard</title>
+</head>
+
+<body>
+  <h2>Olá, {{ user.name }}</h2>
+  <p>Email: {{ user.email }}</p>
+  <img src="{{ user.picture }}" width="100" />
+  <br><br>
+  <a href="{{ url_for('clients.list_clients') }}">Gerenciar Clientes</a> |
+  <a href="{{ url_for('auth.logout') }}">Sair</a>
+</body>
+
 </html>

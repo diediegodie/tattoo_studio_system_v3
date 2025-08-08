@@ -9,12 +9,8 @@ gunicorn
 python-dotenv
 psycopg2-binary
 Werkzeug
-oauthlib
 itsdangerous
 Jinja2
 click
-SQLAlchemy
 email-validator
-pytest
-pytest-flask
 pytz

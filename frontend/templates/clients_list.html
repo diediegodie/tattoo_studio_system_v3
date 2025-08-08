@@ -1,0 +1,37 @@
+{% extends 'dashboard.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Clientes</h2>
+    <a href="{{ url_for('clients.new_client') }}" class="btn btn-success mb-3">Novo Cliente</a>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Email</th>
+                <th>Telefone</th>
+                <th>Notas</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for client in clients %}
+            <tr>
+                <td>{{ client.name }}</td>
+                <td>{{ client.email }}</td>
+                <td>{{ client.phone }}</td>
+                <td>{{ client.notes }}</td>
+                <td>
+                    <a href="{{ url_for('clients.edit_client', client_id=client.id) }}"
+                        class="btn btn-primary btn-sm">Editar</a>
+                    <form action="{{ url_for('clients.delete_client', client_id=client.id) }}" method="post"
+                        style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm"
+                            onclick="return confirm('Tem certeza?');">Excluir</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends 'dashboard.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Conectar JotForm</h2>
+  <form method="post">
+    <div class="mb-3">
+      <label for="jotform_api_key" class="form-label">JotForm API Key</label>
+      <input type="text" class="form-control" id="jotform_api_key" name="jotform_api_key" required
+        value="{{ jotform_api_key or '' }}">
+    </div>
+    <button type="submit" class="btn btn-primary">Salvar</button>
+  </form>
+</div>
+{% endblock %}
