@@ -6,6 +6,6 @@
     <p>Email: {{ user.email }}</p>
     <img src="{{ user.picture }}" width="100" />
     <br><br>
-    <a href="{{ url_for('logout') }}">Sair</a>
+    <a href="{{ url_for('auth.logout') }}">Sair</a>
   </body>
 </html>

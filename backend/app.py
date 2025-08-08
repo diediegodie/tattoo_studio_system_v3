@@ -1,5 +1,12 @@
-from flask import Flask
 import os
+
+# Allow OAuth over HTTP for local development
+os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+from flask import Flask
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 
 def create_app():
