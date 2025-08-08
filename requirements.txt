@@ -1,0 +1,13 @@
+Flask-Dance[google]
+Flask
+requests
+gunicorn
+python-dotenv
+Flask-Login
+Flask-SQLAlchemy
+psycopg2-binary
+Werkzeug
+oauthlib
+itsdangerous
+Jinja2
+click

@@ -12,8 +12,12 @@
         <h1>TATTOO<br>STUDIO<br>SYSTEM</h1>
     </header>
     <main>
-        <button id="login-btn">LOGIN</button>
-        <button id="register-btn">REGISTER</button>
+        <form action="{{ url_for('main.login_redirect') }}" method="get" style="display:inline;">
+            <button type="submit" id="login-btn">LOGIN</button>
+        </form>
+        <form action="{{ url_for('main.register') }}" method="get" style="display:inline;">
+            <button type="submit" id="register-btn">REGISTER</button>
+        </form>
     </main>
     <script src="/static/js/scripts.js"></script>
 </body>
