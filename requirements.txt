@@ -1,10 +1,12 @@
-Flask-Dance[google]
 Flask
+Flask-Dance[google]
+Flask-Login
+Flask-SQLAlchemy
+Flask-WTF
+WTForms
 requests
 gunicorn
 python-dotenv
-Flask-Login
-Flask-SQLAlchemy
 psycopg2-binary
 Werkzeug
 oauthlib
@@ -12,3 +14,7 @@ itsdangerous
 Jinja2
 click
 SQLAlchemy
+email-validator
+pytest
+pytest-flask
+pytz
