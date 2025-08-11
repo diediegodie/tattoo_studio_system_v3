@@ -14,3 +14,4 @@ Jinja2
 click
 email-validator
 pytz
+marshmallow

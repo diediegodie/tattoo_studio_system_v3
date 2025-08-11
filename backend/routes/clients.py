@@ -22,6 +22,11 @@ from ..services.client_service import ClientService
 from ..utils.database import get_db_session
 from ..repositories.user_repository import UserRepository
 from ..models.user import User
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+import os
+from flask import current_app
+from backend.services.jotform_service import JotFormService
 import logging
 
 logger = logging.getLogger(__name__)
@@ -190,48 +195,6 @@ def _handle_client_creation(db_session, user):
         return redirect(url_for("clients.list_clients"))
 
 
-@clients_bp.route("/<int:client_id>/edit", methods=["GET", "POST"])
-@require_authentication
-def edit_client(client_id: int):
-    """
-    Edit an existing client.
-
-    Args:
-        client_id: Client ID to edit
-
-    GET: Show client edit form
-    POST: Process client update
-
-    Returns:
-        Rendered template or redirect
-    """
-    try:
-        with get_db_session() as db_session:
-            user = get_current_user(db_session)
-
-            if not user:
-                flash("Usuário não encontrado.", "danger")
-                return redirect(url_for("auth.login"))
-
-            client_service = ClientService(db_session)
-            client = client_service.get_client_by_id(client_id, user.id)
-
-            if not client:
-                flash("Cliente não encontrado.", "danger")
-                return redirect(url_for("clients.list_clients"))
-
-            if request.method == "POST":
-                return _handle_client_update(db_session, user, client_id)
-
-            # GET request - show form
-            return render_template("client_form.html", client=client)
-
-    except Exception as e:
-        logger.error(f"Error in edit_client: {e}")
-        flash("Erro ao editar cliente.", "danger")
-        return redirect(url_for("clients.list_clients"))
-
-
 def _handle_client_update(db_session, user, client_id: int):
     """
     Handle POST request for client update.
@@ -359,6 +322,45 @@ def search_clients():
     except Exception as e:
         logger.error(f"Error searching clients: {e}")
         return jsonify({"error": "Search failed"}), 500
+
+
+@clients_bp.route("/sync_jotform", methods=["GET"])
+@require_authentication
+def sync_jotform_clients():
+    """
+    Fetch clients from JotForm and display them in the main client list template.
+    """
+    try:
+        db_path = os.path.join(os.path.dirname(__file__), "../db/tattoo_studio.db")
+        db_uri = current_app.config.get(
+            "SQLALCHEMY_DATABASE_URI", f"sqlite:///{os.path.abspath(db_path)}"
+        )
+        engine = create_engine(db_uri)
+        Session = sessionmaker(bind=engine)
+        db_session = Session()
+        user_email = get_current_user_id()
+        user = db_session.query(User).filter_by(email=user_email).first()
+        jotform_api_key = user.jotform_api_key if user is not None else None
+        clients = []
+        error = None
+        if (
+            jotform_api_key is not None
+            and isinstance(jotform_api_key, str)
+            and jotform_api_key.strip()
+        ):
+            jotform_service = JotFormService(jotform_api_key)
+            clients = jotform_service.get_clients_from_first_form()
+            if clients is None:
+                error = "Erro ao buscar clientes do JotForm. Verifique sua chave API e conexão."
+        else:
+            error = "Nenhuma chave de API JotForm salva para este usuário."
+        db_session.close()
+        return render_template("clients_list.html", clients=clients, error=error)
+    except Exception as e:
+        logger.error(f"Error syncing JotForm clients: {e}")
+        return render_template(
+            "clients_list.html", clients=[], error="Erro ao sincronizar com JotForm."
+        )
 
 
 # Error handlers for the blueprint

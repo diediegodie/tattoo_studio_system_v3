@@ -41,39 +41,6 @@ def login_required(f):
     return decorated_function
 
 
-# --- Client Management Placeholder Route ---
-@auth_bp.route("/clients")
-@login_required
-def client_management():
-    from backend.services.jotform_service import JotFormService
-
-    db_path = os.path.join(os.path.dirname(__file__), "../db/tattoo_studio.db")
-    db_uri = current_app.config.get(
-        "SQLALCHEMY_DATABASE_URI", f"sqlite:///{os.path.abspath(db_path)}"
-    )
-    engine = create_engine(db_uri)
-    Session = sessionmaker(bind=engine)
-    db_session = Session()
-    user_email = session["user"]["email"]
-    user = db_session.query(User).filter_by(email=user_email).first()
-    jotform_api_key = user.jotform_api_key if user is not None else None
-    clients = []
-    error = None
-    if (
-        jotform_api_key is not None
-        and isinstance(jotform_api_key, str)
-        and jotform_api_key.strip()
-    ):
-        jotform_service = JotFormService(jotform_api_key)
-        clients = jotform_service.get_clients_from_first_form()
-        if clients is None:
-            error = (
-                "Erro ao buscar clientes do JotForm. Verifique sua chave API e conexão."
-            )
-    else:
-        error = "Nenhuma chave de API JotForm salva para este usuário."
-    db_session.close()
-    return render_template("client_list.html", clients=clients, error=error)
 
 
 # --- JotForm API Key Connect Route ---
@@ -212,3 +179,13 @@ def dashboard():
 def logout():
     session.clear()
     return redirect(url_for("auth.login"))
+
+
+
+me = "all_in"
+you = "missing_in_action"
+
+if me and you:
+    print("Could be us, but you're busy ignoring me.")
+else:
+    print("404: relationship not found.")

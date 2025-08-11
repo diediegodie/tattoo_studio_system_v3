@@ -7,11 +7,13 @@ This service follows SOLID principles by:
 - Open/Closed: Extensible without modifying existing code
 """
 
+
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from ..models.client import Client
 from ..repositories.client_repository import ClientRepository
 from ..repositories.user_repository import UserRepository
+from ..schemas.client_schema import ClientSchema
 import logging
 
 logger = logging.getLogger(__name__)
@@ -71,21 +73,12 @@ class ClientService:
             logger.error(f"Error getting client {client_id} for user {user_id}: {e}")
             return None
 
+
     def create_client(
         self, user_id: int, name: str, email: str, phone: str = "", notes: str = ""
     ) -> Optional[Client]:
         """
-        Create a new client.
-
-        Args:
-            user_id: User ID
-            name: Client name
-            email: Client email
-            phone: Client phone (optional)
-            notes: Client notes (optional)
-
-        Returns:
-            Optional[Client]: Created client or None if failed
+        Create a new client with centralized schema validation.
         """
         try:
             # Validate user exists
@@ -94,9 +87,17 @@ class ClientService:
                 logger.warning(f"User {user_id} not found when creating client")
                 return None
 
-            # Validate required fields
-            if not name or not email:
-                logger.warning("Name and email are required for client creation")
+            # Centralized validation using Marshmallow schema
+            schema = ClientSchema()
+            input_data = {
+                "name": name,
+                "email": email,
+                "phone": phone,
+                # Add notes if you want to validate it as well
+            }
+            errors = schema.validate(input_data)
+            if errors:
+                logger.warning(f"Client validation failed: {errors}")
                 return None
 
             logger.info(f"Creating client {name} for user {user_id}")
@@ -111,6 +112,7 @@ class ClientService:
             logger.error(f"Error creating client for user {user_id}: {e}")
             return None
 
+
     def update_client(
         self,
         client_id: int,
@@ -121,18 +123,7 @@ class ClientService:
         notes: str = "",
     ) -> Optional[Client]:
         """
-        Update an existing client.
-
-        Args:
-            client_id: Client ID
-            user_id: User ID
-            name: Updated name
-            email: Updated email
-            phone: Updated phone
-            notes: Updated notes
-
-        Returns:
-            Optional[Client]: Updated client or None if failed
+        Update an existing client with centralized schema validation.
         """
         try:
             # Get client and verify ownership
@@ -141,9 +132,17 @@ class ClientService:
                 logger.warning(f"Client {client_id} not found for user {user_id}")
                 return None
 
-            # Validate required fields
-            if not name or not email:
-                logger.warning("Name and email are required for client update")
+            # Centralized validation using Marshmallow schema
+            schema = ClientSchema()
+            input_data = {
+                "name": name,
+                "email": email,
+                "phone": phone,
+                # Add notes if you want to validate it as well
+            }
+            errors = schema.validate(input_data)
+            if errors:
+                logger.warning(f"Client validation failed: {errors}")
                 return None
 
             logger.info(f"Updating client {client_id} for user {user_id}")
@@ -217,47 +216,3 @@ class ClientService:
         except Exception as e:
             logger.error(f"Error searching clients for user {user_id}: {e}")
             return []
-
-
-# Legacy function wrappers for backward compatibility
-def get_all_clients(db_session: Session, user_id: int) -> List[Client]:
-    """Legacy wrapper for backward compatibility."""
-    service = ClientService(db_session)
-    return service.get_all_clients(user_id)
-
-
-def get_client_by_id(
-    db_session: Session, client_id: int, user_id: int
-) -> Optional[Client]:
-    """Legacy wrapper for backward compatibility."""
-    service = ClientService(db_session)
-    return service.get_client_by_id(client_id, user_id)
-
-
-def create_client(
-    db_session: Session, user_id: int, name: str, email: str, phone: str, notes: str
-) -> Optional[Client]:
-    """Legacy wrapper for backward compatibility."""
-    service = ClientService(db_session)
-    return service.create_client(user_id, name, email, phone, notes)
-
-
-def update_client(
-    db_session: Session,
-    client_id: int,
-    user_id: int,
-    name: str,
-    email: str,
-    phone: str,
-    notes: str,
-) -> Optional[Client]:
-    """Legacy wrapper for backward compatibility."""
-    service = ClientService(db_session)
-    return service.update_client(client_id, user_id, name, email, phone, notes)
-
-
-def delete_client(db_session: Session, client_id: int, user_id: int) -> bool:
-    """Legacy wrapper for backward compatibility."""
-    service = ClientService(db_session)
-    return service.delete_client(client_id, user_id)
-    return False
