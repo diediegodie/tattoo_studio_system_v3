@@ -6,3 +6,4 @@ Base = declarative_base()
 # Ensure both User and Client models are imported and registered with SQLAlchemy
 from .user import User
 from .client import Client
+from .session import Session

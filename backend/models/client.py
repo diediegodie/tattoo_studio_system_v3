@@ -37,6 +37,10 @@ class Client(Base):
 
     # Relationship to User
     user = relationship("User", back_populates="clients")
+    # Relationship to Session (as client)
+    sessions_as_client = relationship(
+        "Session", back_populates="client", foreign_keys="Session.client_id"
+    )
 
     def __repr__(self) -> str:
         """String representation of client."""

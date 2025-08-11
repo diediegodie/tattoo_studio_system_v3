@@ -14,6 +14,7 @@ import datetime
 
 if TYPE_CHECKING:
     from .client import Client
+    from .session import Session
 
 
 class User(Base):
@@ -44,6 +45,10 @@ class User(Base):
 
     # Relationship to Client
     clients: Mapped[list["Client"]] = relationship("Client", back_populates="user")
+    # Relationship to Session (as artist)
+    sessions_as_artist: Mapped[list["Session"]] = relationship(
+        "Session", back_populates="artist", foreign_keys="Session.artist_id"
+    )
 
     def set_password(self, password: str) -> None:
         """

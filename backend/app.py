@@ -106,6 +106,15 @@ def _register_blueprints(app: Flask) -> None:
     except ImportError as e:
         app.logger.warning(f"Could not register clients blueprint: {e}")
 
+    # Register sessions blueprint
+    try:
+        from .routes.sessions import bp as sessions_bp
+
+        app.register_blueprint(sessions_bp)
+        app.logger.info("Sessions blueprint registered successfully")
+    except ImportError as e:
+        app.logger.warning(f"Could not register sessions blueprint: {e}")
+
     # Register auth blueprint if available
     auth_path = os.path.join(os.path.dirname(__file__), "auth")
     if os.path.isdir(auth_path) and os.path.isfile(
