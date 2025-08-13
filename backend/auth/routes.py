@@ -21,7 +21,7 @@ from functools import wraps
 from .services.google_service import GoogleAuthService
 from backend.models.user import User
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 
 # Ensure Blueprint is defined
 try:
@@ -39,8 +39,6 @@ def login_required(f):
         return f(*args, **kwargs)
 
     return decorated_function
-
-
 
 
 # --- JotForm API Key Connect Route ---
@@ -138,9 +136,12 @@ def callback():
         engine = create_engine(db_uri)
         Session = sessionmaker(bind=engine)
         db_session = Session()
+
         email = user_info.get("email")
         name = user_info.get("name")
         picture = user_info.get("picture")
+
+        # Keep legacy query/filter_by style to match existing tests and mocks
         user = db_session.query(User).filter_by(email=email).first()
         if not user:
             # Create new user with Google info, set a random password (not used for Google login)
@@ -155,11 +156,7 @@ def callback():
                 db_session.commit()
         db_session.close()
 
-        session["user"] = {
-            "email": email,
-            "name": name,
-            "picture": picture,
-        }
+        session["user"] = {"email": email, "name": name, "picture": picture}
         jwt_token = service.create_jwt_token(user_info)
         session["jwt_token"] = jwt_token
         return redirect(url_for("auth.dashboard"))
@@ -181,11 +178,11 @@ def logout():
     return redirect(url_for("auth.login"))
 
 
+@auth_bp.route("/clients", methods=["GET"])
+@login_required
+def client_management():
+    """Entry point for client management under auth prefix.
 
-me = "all_in"
-you = "missing_in_action"
-
-if me and you:
-    print("Could be us, but you're busy ignoring me.")
-else:
-    print("404: relationship not found.")
+    Redirects to the main clients list page.
+    """
+    return redirect(url_for("clients.list_clients"))

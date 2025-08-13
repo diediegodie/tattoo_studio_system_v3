@@ -6,6 +6,7 @@ the Repository pattern and Dependency Inversion Principle.
 """
 
 from typing import List, Optional
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from ..models.client import Client
 from .base import UserOwnedRepository
@@ -43,7 +44,7 @@ class ClientRepository(UserOwnedRepository[Client, int]):
             Optional[Client]: Client if found, None otherwise
         """
         try:
-            return self.session.query(Client).filter_by(id=id).first()
+            return self.session.get(Client, id)
         except Exception as e:
             logger.error(f"Error getting client by ID {id}: {e}")
             return None
@@ -56,7 +57,7 @@ class ClientRepository(UserOwnedRepository[Client, int]):
             List[Client]: All clients
         """
         try:
-            return self.session.query(Client).all()
+            return list(self.session.scalars(select(Client)))
         except Exception as e:
             logger.error(f"Error getting all clients: {e}")
             return []
@@ -72,7 +73,8 @@ class ClientRepository(UserOwnedRepository[Client, int]):
             List[Client]: Clients owned by user
         """
         try:
-            return self.session.query(Client).filter_by(user_id=user_id).all()
+            stmt = select(Client).where(Client.user_id == user_id)
+            return list(self.session.scalars(stmt))
         except Exception as e:
             logger.error(f"Error getting clients for user {user_id}: {e}")
             return []
@@ -89,7 +91,8 @@ class ClientRepository(UserOwnedRepository[Client, int]):
             Optional[Client]: Client if found and owned by user, None otherwise
         """
         try:
-            return self.session.query(Client).filter_by(id=id, user_id=user_id).first()
+            stmt = select(Client).where(Client.id == id, Client.user_id == user_id)
+            return self.session.scalars(stmt).first()
         except Exception as e:
             logger.error(f"Error getting client {id} for user {user_id}: {e}")
             return None
@@ -195,10 +198,10 @@ class ClientRepository(UserOwnedRepository[Client, int]):
             List[Client]: Clients with matching email
         """
         try:
-            query = self.session.query(Client).filter_by(email=email)
+            stmt = select(Client).where(Client.email == email)
             if user_id is not None:
-                query = query.filter_by(user_id=user_id)
-            return query.all()
+                stmt = stmt.where(Client.user_id == user_id)
+            return list(self.session.scalars(stmt))
         except Exception as e:
             logger.error(f"Error getting clients by email {email}: {e}")
             return []
@@ -217,12 +220,10 @@ class ClientRepository(UserOwnedRepository[Client, int]):
             List[Client]: Clients matching name pattern
         """
         try:
-            query = self.session.query(Client).filter(
-                Client.name.ilike(f"%{name_pattern}%")
-            )
+            stmt = select(Client).where(Client.name.ilike(f"%{name_pattern}%"))
             if user_id is not None:
-                query = query.filter_by(user_id=user_id)
-            return query.all()
+                stmt = stmt.where(Client.user_id == user_id)
+            return list(self.session.scalars(stmt))
         except Exception as e:
             logger.error(f"Error searching clients by name {name_pattern}: {e}")
             return []

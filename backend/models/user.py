@@ -5,7 +5,7 @@ This module defines the User SQLAlchemy model with proper type annotations
 following SOLID principles.
 """
 
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Integer, String, DateTime
 from . import Base
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from passlib.hash import bcrypt

@@ -4,11 +4,15 @@ Client model for customer management.
 This module defines the Client SQLAlchemy model following SOLID principles.
 """
 
-from sqlalchemy import Column, Integer, String, Text, ForeignKey, DateTime
-from sqlalchemy.orm import relationship
+from sqlalchemy import String, Text, ForeignKey, DateTime, Integer
+from sqlalchemy.orm import relationship, Mapped, mapped_column
 from . import Base
-from typing import Optional
+from typing import Optional, List, TYPE_CHECKING
 import datetime
+
+if TYPE_CHECKING:
+    from .user import User
+    from .session import Session
 
 
 class Client(Base):
@@ -27,18 +31,20 @@ class Client(Base):
 
     __tablename__ = "clients"
 
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    name = Column(String(128), nullable=False)
-    email = Column(String(128), nullable=True)
-    phone = Column(String(64), nullable=True)
-    notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    email: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, default=datetime.datetime.utcnow
+    )
 
     # Relationship to User
-    user = relationship("User", back_populates="clients")
+    user: Mapped["User"] = relationship("User", back_populates="clients")
     # Relationship to Session (as client)
-    sessions_as_client = relationship(
+    sessions_as_client: Mapped[List["Session"]] = relationship(
         "Session", back_populates="client", foreign_keys="Session.client_id"
     )
 

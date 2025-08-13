@@ -6,6 +6,7 @@ the Repository pattern and Dependency Inversion Principle.
 """
 
 from typing import List, Optional
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from ..models.user import User
 from .base import BaseRepository
@@ -43,7 +44,7 @@ class UserRepository(BaseRepository[User, int]):
             Optional[User]: User if found, None otherwise
         """
         try:
-            return self.session.query(User).filter_by(id=id).first()
+            return self.session.get(User, id)
         except Exception as e:
             logger.error(f"Error getting user by ID {id}: {e}")
             return None
@@ -56,7 +57,7 @@ class UserRepository(BaseRepository[User, int]):
             List[User]: All users
         """
         try:
-            return self.session.query(User).all()
+            return list(self.session.scalars(select(User)))
         except Exception as e:
             logger.error(f"Error getting all users: {e}")
             return []
@@ -131,7 +132,8 @@ class UserRepository(BaseRepository[User, int]):
             Optional[User]: User if found, None otherwise
         """
         try:
-            return self.session.query(User).filter_by(email=email).first()
+            stmt = select(User).where(User.email == email)
+            return self.session.scalars(stmt).first()
         except Exception as e:
             logger.error(f"Error getting user by email {email}: {e}")
             return None

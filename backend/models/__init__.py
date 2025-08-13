@@ -1,7 +1,9 @@
-# Single declarative base for all models
-from sqlalchemy.ext.declarative import declarative_base
+# Single declarative base for all models (SQLAlchemy 2.0 style)
+from sqlalchemy.orm import DeclarativeBase
 
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+	pass
 
 # Ensure both User and Client models are imported and registered with SQLAlchemy
 from .user import User

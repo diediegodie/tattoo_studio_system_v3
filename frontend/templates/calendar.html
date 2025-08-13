@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Calendar</title>
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    <link rel="stylesheet" href="/assets/css/calendar_style.css">
+</head>
+
+<body>
+
+    <div class="alert" id="globalAlert"></div>
+    <div id='calendar'></div>
+
+    <!-- Simple modal -->
+    <div class="modal-backdrop" id="modalBackdrop"></div>
+    <div class="modal" id="sessionModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <header id="modalTitle">Schedule a session</header>
+        <form id="sessionForm">
+            <div class="row">
+                <div style="flex:1">
+                    <label for="artist_id">Artist</label>
+                    <select id="artist_id" name="artist_id" required></select>
+                    <div class="error" id="artistError">Artist is required</div>
+                </div>
+                <div style="flex:1">
+                    <label for="client_id">Client</label>
+                    <select id="client_id" name="client_id" required></select>
+                    <div class="error" id="clientError">Client is required</div>
+                </div>
+            </div>
+            <div class="row">
+                <div style="flex:1">
+                    <label for="date">Date</label>
+                    <input type="date" id="date" name="date" required />
+                    <div class="error" id="dateError">Date is required</div>
+                </div>
+                <div style="flex:1">
+                    <label for="start_time">Start</label>
+                    <input type="time" id="start_time" name="start_time" required />
+                </div>
+                <div style="flex:1">
+                    <label for="end_time">End</label>
+                    <input type="time" id="end_time" name="end_time" required />
+                    <div class="error" id="timeError">End time must be after start time</div>
+                </div>
+            </div>
+            <label for="notes">Notes</label>
+            <textarea id="notes" name="notes" rows="3" placeholder="Optional notes..."></textarea>
+            <footer>
+                <button type="button" id="cancelBtn">Cancel</button>
+                <button type="submit">Save</button>
+            </footer>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var calendarEl = document.getElementById('calendar');
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                events: '/sessions/',
+                eventClick: function (info) {
+                    // Basic edit/delete prompt. For simplicity, reuse create modal as edit prefill (notes only).
+                    const evt = info.event;
+                    const start = evt.start;
+                    const end = evt.end;
+                    openModal(start.toISOString().slice(0, 10), {
+                        start: start.toTimeString().slice(0, 5),
+                        end: end ? end.toTimeString().slice(0, 5) : '',
+                        mode: 'edit',
+                        id: evt.id
+                    });
+                },
+                dateClick: function (info) {
+                    // Prefill date and start/end based on view and click time
+                    let startStr = '';
+                    let endStr = '';
+                    const viewType = calendar.view.type;
+                    if (viewType === 'timeGridWeek' || viewType === 'timeGridDay') {
+                        // info.date is a Date with time
+                        const start = new Date(info.date);
+                        const end = new Date(start.getTime() + 60 * 60 * 1000); // default 1h
+                        startStr = start.toTimeString().slice(0, 5);
+                        endStr = end.toTimeString().slice(0, 5);
+                    }
+                    openModal(info.dateStr, { start: startStr, end: endStr });
+                }
+            });
+            calendar.render();
+
+            // Modal helpers
+            const backdrop = document.getElementById('modalBackdrop');
+            const modal = document.getElementById('sessionModal');
+            const form = document.getElementById('sessionForm');
+            const globalAlert = document.getElementById('globalAlert');
+            const timeError = document.getElementById('timeError');
+            const dateInput = document.getElementById('date');
+            const startInput = document.getElementById('start_time');
+            const endInput = document.getElementById('end_time');
+            const artistSelect = document.getElementById('artist_id');
+            const clientSelect = document.getElementById('client_id');
+
+            function show(el) { el.style.display = 'block'; }
+            function hide(el) { el.style.display = 'none'; }
+            function setAlert(msg) { if (!msg) { hide(globalAlert); return; } globalAlert.textContent = msg; show(globalAlert); }
+            function validateTimes() {
+                const s = startInput.value; const e = endInput.value;
+                if (!s || !e) { hide(timeError); return true; }
+                if (e <= s) { show(timeError); return false; }
+                hide(timeError); return true;
+            }
+            startInput.addEventListener('change', validateTimes);
+            endInput.addEventListener('change', validateTimes);
+
+            async function loadOptions() {
+                try {
+                    const params = new URLSearchParams(window.location.search);
+                    const artist_ids = params.get('artist_ids');
+                    const res = await fetch('/sessions/options' + (artist_ids ? ('?artist_ids=' + encodeURIComponent(artist_ids)) : ''));
+                    const data = await res.json();
+                    artistSelect.innerHTML = '<option value="">Select artist</option>' +
+                        (data.artists || []).map(a => `<option value="${a.id}">${a.name || a.email || ('User ' + a.id)}</option>`).join('');
+                    clientSelect.innerHTML = '<option value="">Select client</option>' +
+                        (data.clients || []).map(c => `<option value="${c.id}">${c.name || c.email || ('Client ' + c.id)}</option>`).join('');
+                } catch (e) {
+                    setAlert('Failed to load options.');
+                }
+            }
+
+            function openModal(dateStr, opts) {
+                form.reset();
+                dateInput.value = dateStr;
+                if (opts && opts.start) startInput.value = opts.start;
+                if (opts && opts.end) endInput.value = opts.end;
+                validateTimes();
+                loadOptions();
+                show(backdrop); show(modal);
+                // If editing, show quick actions
+                if (opts && opts.mode === 'edit' && opts.id) {
+                    document.getElementById('modalTitle').textContent = 'Edit session #' + opts.id;
+                    ensureEditButtons(opts.id);
+                } else {
+                    document.getElementById('modalTitle').textContent = 'Schedule a session';
+                    removeEditButtons();
+                }
+            }
+            function ensureEditButtons(id) {
+                if (document.getElementById('deleteBtn')) return;
+                const footer = modal.querySelector('footer');
+                const del = document.createElement('button');
+                del.type = 'button'; del.id = 'deleteBtn'; del.textContent = 'Delete';
+                del.style.marginRight = 'auto';
+                del.addEventListener('click', async () => {
+                    setAlert('');
+                    try {
+                        const res = await fetch('/sessions/' + id, { method: 'DELETE' });
+                        if (res.status !== 204) { setAlert('Failed to delete.'); return; }
+                        closeModal(); calendar.refetchEvents();
+                    } catch (e) { setAlert('Failed to delete.'); }
+                });
+                footer.prepend(del);
+            }
+            function removeEditButtons() {
+                const del = document.getElementById('deleteBtn');
+                if (del) del.remove();
+            }
+            function closeModal() { hide(modal); hide(backdrop); }
+            document.getElementById('cancelBtn').addEventListener('click', closeModal);
+            backdrop.addEventListener('click', closeModal);
+
+            form.addEventListener('submit', async (ev) => {
+                ev.preventDefault();
+                setAlert('');
+                if (!validateTimes()) return;
+                const payload = {
+                    artist_id: parseInt(artistSelect.value, 10),
+                    client_id: parseInt(clientSelect.value, 10),
+                    date: dateInput.value,
+                    start_time: startInput.value,
+                    end_time: endInput.value,
+                    notes: document.getElementById('notes').value || null,
+                };
+                if (!payload.artist_id || !payload.client_id || !payload.date || !payload.start_time || !payload.end_time) {
+                    setAlert('Please fill all required fields.');
+                    return;
+                }
+                try {
+                    const res = await fetch('/sessions/', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                    });
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({ error: 'Invalid data' }));
+                        setAlert(err.error || 'Validation failed.');
+                        return;
+                    }
+                    await res.json();
+                    closeModal();
+                    calendar.refetchEvents();
+                } catch (e) {
+                    setAlert('Failed to create session.');
+                }
+            });
+        });
+    </script>
+
+</body>
+
+</html>

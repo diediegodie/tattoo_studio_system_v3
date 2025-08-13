@@ -31,7 +31,8 @@ class DatabaseManager:
         """
         self.database_uri = database_uri
         self.engine = create_engine(database_uri)
-        self.SessionLocal = sessionmaker(bind=self.engine)
+        # Avoid expiring attributes on commit so returned entities remain usable
+        self.SessionLocal = sessionmaker(bind=self.engine, expire_on_commit=False)
 
     @contextmanager
     def get_session(self) -> Generator[Session, None, None]:
@@ -44,8 +45,9 @@ class DatabaseManager:
             Session: SQLAlchemy session
 
         Example:
+            from sqlalchemy import select
             with db_manager.get_session() as session:
-                user = session.query(User).first()
+                user = session.scalars(select(User)).first()
         """
         session = self.SessionLocal()
         try:
@@ -126,8 +128,9 @@ def get_db_session() -> Generator[Session, None, None]:
         Session: SQLAlchemy session
 
     Example:
+        from sqlalchemy import select
         with get_db_session() as session:
-            clients = session.query(Client).all()
+            clients = list(session.scalars(select(Client)))
     """
     db_manager = get_database_manager()
     with db_manager.get_session() as session:

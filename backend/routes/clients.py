@@ -26,7 +26,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import os
 from flask import current_app
-from backend.services.jotform_service import JotFormService
+from ..services.jotform_service import JotFormService
 import logging
 
 logger = logging.getLogger(__name__)
@@ -339,7 +339,9 @@ def sync_jotform_clients():
         Session = sessionmaker(bind=engine)
         db_session = Session()
         user_email = get_current_user_id()
-        user = db_session.query(User).filter_by(email=user_email).first()
+        from sqlalchemy import select
+
+        user = db_session.scalars(select(User).where(User.email == user_email)).first()
         jotform_api_key = user.jotform_api_key if user is not None else None
         clients = []
         error = None
@@ -369,6 +371,42 @@ def not_found(error):
     """Handle 404 errors in clients blueprint."""
     flash("Página não encontrada.", "warning")
     return redirect(url_for("clients.list_clients"))
+
+
+@clients_bp.route("/<int:client_id>/edit", methods=["GET", "POST"])
+@require_authentication
+def edit_client(client_id: int):
+    """
+    Edit an existing client (GET shows form, POST updates).
+
+    Args:
+        client_id: Client ID to edit
+
+    Returns:
+        Rendered template or redirect
+    """
+    try:
+        with get_db_session() as db_session:
+            user = get_current_user(db_session)
+
+            if not user:
+                flash("Usuário não encontrado.", "danger")
+                return redirect(url_for("auth.login"))
+
+            if request.method == "POST":
+                return _handle_client_update(db_session, user, client_id)
+
+            client_service = ClientService(db_session)
+            client = client_service.get_client_by_id(client_id, user.id)
+            if not client:
+                flash("Cliente não encontrado.", "warning")
+                return redirect(url_for("clients.list_clients"))
+
+            return render_template("client_form.html", client=client)
+    except Exception as e:
+        logger.error(f"Error editing client {client_id}: {e}")
+        flash("Erro ao carregar cliente.", "danger")
+        return redirect(url_for("clients.list_clients"))
 
 
 @clients_bp.errorhandler(500)
